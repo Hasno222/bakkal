@@ -74,6 +74,13 @@ input[type=color]{padding:3px;height:50px}
 .chg{flex:1;display:flex;align-items:center;font-weight:800;font-size:18px}
 .kres{width:100%;margin-top:6px;text-align:left}
 .krow{gap:6px;margin-top:8px}.krow button{min-width:44px;padding:8px}.krow .kq{width:64px;text-align:center;padding:8px}.krow .kl{min-width:84px;text-align:right}
+body.kb nav{display:none}
+body.kb{padding-bottom:50vh}
+body.kb .chips{position:static}
+body.kb .search{padding:4px 0}body.kb .search input{min-height:50px}
+.cbar{position:sticky;top:0;z-index:6;background:var(--bg);padding:6px 0}
+.cbar .total{margin:0 0 6px;padding:8px 14px}.cbar input{min-height:46px;padding:8px 12px}
+body.kb .cbar .total{font-size:16px}
 </style>
 </head>
 <body>
@@ -105,7 +112,7 @@ input[type=color]{padding:3px;height:50px}
 <div id="app" class="wrap" hidden>
   <section id="v_search">
     <div class="search"><div class="row">
-      <input id="q" type="search" inputmode="search" placeholder="Ürün adı veya barkod" autocomplete="off">
+      <input id="q" type="search" inputmode="search" enterkeyhint="search" placeholder="Ürün adı veya barkod" autocomplete="off">
       <button class="fix" id="qscan" aria-label="Barkod tara">📷</button>
     </div></div>
     <div id="chips" class="chips"></div><div id="res" class="list"></div>
@@ -126,10 +133,11 @@ input[type=color]{padding:3px;height:50px}
   </section>
   <section id="v_cart" hidden>
     <div class="row hd"><button class="alt fix" data-go="tools">‹ Geri</button><h1>Hesap makinesi</h1></div>
+    <div class="cbar"><div class="total"><span>Toplam</span><b id="k_tot"></b></div><div class="row"><input id="k_pay" inputmode="decimal" placeholder="Verilen para (₺)"><div class="chg" id="k_chg"></div></div></div>
     <div class="row"><input id="k_q" placeholder="Ürün adı veya barkod" autocomplete="off"><button class="alt fix" id="k_scan" aria-label="Barkod tara">📷</button></div>
     <div id="k_res"></div><div id="k_ls"></div>
-    <div class="total"><span>Toplam</span><b id="k_tot"></b></div>
-    <div class="row"><input id="k_pay" inputmode="decimal" placeholder="Müşterinin verdiği (₺)"><div class="chg" id="k_chg"></div></div>
+    
+    
     <div class="row" style="margin-top:8px"><input id="k_man" inputmode="decimal" placeholder="Başka tutar ekle (₺)"><button class="alt fix" id="k_madd">Ekle</button></div>
     <p><button class="bad" id="k_clr" style="width:100%">Sepeti boşalt</button></p>
   </section>
@@ -396,7 +404,7 @@ $('#l_pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#l_go').click()}
 $('#out').onclick=async()=>{await sb.auth.signOut();location.reload()};
 $('#reset').onclick=()=>{if(confirm('Bağlantı bilgisi silinsin mi?')){localStorage.removeItem('bk_cfg');location.reload()}};
 $('#reload').onclick=()=>load().then(()=>toast('Yenilendi'));
-$('#q').oninput=renderSearch;
+$('#q').oninput=renderSearch;$('#q').addEventListener('keydown',e=>{if(e.key==='Enter')e.target.blur()});
 $('#qscan').onclick=()=>scan(c=>{$('#q').value=c;renderSearch()});
 document.addEventListener('click',e=>{
  const it=e.target.closest('.item');if(it){const p=P.find(x=>x.id===it.dataset.id);if(p)openEdit(p);return}
@@ -497,7 +505,7 @@ async function loadOrd(){
 function renderOrd(){paintOrd();loadOrd()}
 function paintOrd(){
  $('#dlp').innerHTML=P.slice(0,500).map(p=>`<option value="${esc(p.name)}">`).join('');
- $('#ol').innerHTML=O.length?O.map(o=>`<div class="item ord${o.done?' dn':''}" data-oid="${esc(o.id)}"><input type="checkbox" class="ock" ${o.done?'checked':''}><div class="nm"><b>${esc(o.name)}</b>${o.qty?`<small>${esc(o.qty)}</small>`:''}</div><button class="alt fix odel" aria-label="Sil">✕</button></div>`).join(''):'<div class="empty">Liste boş.</div>';
+ $('#ol').innerHTML=O.length?O.slice().reverse().map(o=>`<div class="item ord${o.done?' dn':''}" data-oid="${esc(o.id)}"><input type="checkbox" class="ock" ${o.done?'checked':''}><div class="nm"><b>${esc(o.name)}</b>${o.qty?`<small>${esc(o.qty)}</small>`:''}</div><button class="alt fix odel" aria-label="Sil">✕</button></div>`).join(''):'<div class="empty">Liste boş.</div>';
 }
 async function addOrd(name,qty){
  name=name.trim();if(!name)return;
@@ -545,7 +553,7 @@ function paintCart(){
  const pay=num($('#k_pay').value);$('#k_chg').textContent=pay==null?'':pay>=tot?'Para üstü: '+TL(r2(pay-tot)):'Eksik: '+TL(r2(tot-pay));
 }
 $('#k_q').oninput=paintCart;$('#k_pay').oninput=paintCart;
-$('#k_q').addEventListener('keydown',e=>{if(e.key==='Enter'){const f=kfind($('#k_q').value);if(f.length===1)kadd(f[0])}});
+$('#k_q').addEventListener('keydown',e=>{if(e.key==='Enter'){const f=kfind($('#k_q').value);if(f.length===1)kadd(f[0]);else e.target.blur()}});
 $('#k_scan').onclick=()=>scan(c=>{const p=P.find(x=>x.barcode===c);if(p)kadd(p);else toast('Barkod kayıtlı değil: '+c,1)});
 $('#k_res').onclick=e=>{const b=e.target.closest('[data-pid]');const p=b&&P.find(x=>x.id===b.dataset.pid);if(p)kadd(p)};
 $('#k_ls').onclick=e=>{const r=e.target.closest('[data-i]');if(!r)return;const i=+r.dataset.i,k=K[i];
@@ -564,7 +572,12 @@ document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g
 function vv(){const v=window.visualViewport;document.documentElement.style.setProperty('--vh',(v?v.height:innerHeight)+'px');if(v&&!$('#sheet').hidden)window.scrollTo(0,0)}
 if(window.visualViewport){visualViewport.addEventListener('resize',vv);visualViewport.addEventListener('scroll',vv)}
 vv();
-document.addEventListener('focusin',e=>{if(e.target.closest('#sheet')&&/INPUT|SELECT/.test(e.target.tagName))setTimeout(()=>e.target.scrollIntoView({block:'center',behavior:'smooth'}),350)});
+const TXT=el=>!!el&&/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)&&!/^(checkbox|color|file|button)$/.test(el.type);
+document.addEventListener('focusin',e=>{const t=e.target;if(!TXT(t))return;document.body.classList.add('kb');
+ if(t.closest('.search,.cbar'))return;
+ setTimeout(()=>t.scrollIntoView({block:'center',behavior:'smooth'}),350)});
+document.addEventListener('focusout',()=>setTimeout(()=>{if(!TXT(document.activeElement))document.body.classList.remove('kb')},150));
+document.addEventListener('touchmove',()=>{const a=document.activeElement;if(TXT(a)&&!a.closest('#sheet'))a.blur()},{passive:true});
 applyTheme();
 init();
 </script>
