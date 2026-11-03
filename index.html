@@ -58,34 +58,23 @@ pre{white-space:pre-wrap;font-size:12px;background:#eef2ee;padding:10px;border-r
 
 <!-- Kurulum -->
 <div id="setup" class="wrap" hidden>
-  <h1>Bağlantı Kurulumu</h1>
+  <h1>Bağlantı kurulumu</h1>
   <div class="box">
-    <p>1) Supabase'de SQL Editor'ı açıp verilen kodu çalıştırın.<br>
-       2) Authentication &gt; Users bölümünden e-posta ve şifrenizi ekleyin.<br>
-       3) Project Settings &gt; API sayfasındaki URL ve anon key bilgilerini buraya girin.</p>
-    <button class="alt" id="cpsql">SQL Kodunu Kopyala</button>
-    
-    <label>Supabase Proje URL Adresi</label>
-    <input id="s_url" type="url" placeholder="https://xxxx.supabase.co" autocapitalize="off" autocomplete="off">
-    
-    <label>Supabase Anon (Public) Anahtarı</label>
-    <input id="s_key" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." autocapitalize="off" autocomplete="off">
-    
-    <p><button id="s_go" style="width:100%">Bağlantıyı Kaydet</button></p>
+    <p>1) Supabase'de SQL Editor'ü açıp aşağıdaki kodu çalıştırın. 2) Authentication &gt; Users'tan kendinize e-posta/şifre ile kullanıcı ekleyin (kayıt olmayı kapatın). 3) Project Settings &gt; API'den adresi ve anon anahtarı girin.</p>
+    <button class="alt" id="cpsql">SQL kodunu kopyala</button>
+    <label>Supabase adresi</label><input id="s_url" placeholder="https://xxxx.supabase.co" autocapitalize="off">
+    <label>Anon (public) anahtar</label><input id="s_key" autocapitalize="off">
+    <p><button id="s_go" style="width:100%">Bağlan</button></p>
   </div>
 </div>
 
 <!-- Giriş -->
 <div id="login" class="wrap" hidden>
-  <h1>Giriş Yap</h1>
+  <h1>Giriş</h1>
   <div class="box">
-    <label>E-posta</label>
-    <input id="l_mail" type="email" placeholder="ornek@email.com" autocomplete="username">
-    
-    <label>Şifre</label>
-    <input id="l_pw" type="password" placeholder="••••••••" autocomplete="current-password">
-    
-    <p><button id="l_go" style="width:100%">Giriş Yap</button></p>
+    <label>E-posta</label><input id="l_mail" type="email" autocomplete="username">
+    <label>Şifre</label><input id="l_pw" type="password" autocomplete="current-password">
+    <p><button id="l_go" style="width:100%">Giriş yap</button></p>
   </div>
 </div>
 
@@ -134,7 +123,7 @@ pre{white-space:pre-wrap;font-size:12px;background:#eef2ee;padding:10px;border-r
   <p><button class="alt" id="sug" style="width:100%"></button></p>
   <div class="row"><div><label>Stok</label><div class="row"><button class="alt fix" id="m1">−</button><input id="f_stock" inputmode="decimal"><button class="alt fix" id="p1">+</button></div></div><div><label>Asgari stok</label><input id="f_min" inputmode="decimal"></div></div>
   <p class="row"><button class="alt" id="f_x">Vazgeç</button><button id="f_ok">Kaydet</button></p>
-  <p class="bad-wrap"><button class="bad" id="f_del" style="width:100%">Ürünü sil</button></p>
+  <p><button class="bad" id="f_del" style="width:100%">Ürünü sil</button></p>
 </div></div>
 
 <div id="scan" hidden><video id="cam" playsinline muted></video><p>Barkodu çerçeveye getirin</p><button class="alt" id="scanx" style="margin:0 12px 12px">Kapat</button></div>
@@ -190,7 +179,7 @@ const issues=p=>{const a=[];
 
 /* ---- Başlangıç ---- */
 async function init(){
- $('#cpsql').onclick=async()=>{try{await navigator.clipboard.writeText(SQL);toast('SQL Kopyalandı')}catch{prompt('Kopyalayın:',SQL)}};
+ $('#cpsql').onclick=async()=>{try{await navigator.clipboard.writeText(SQL);toast('Kopyalandı')}catch{prompt('Kopyalayın:',SQL)}};
  const cfg=ls('bk_cfg',null);
  if(!cfg){show('setup');return}
  if(!window.supabase){loadCache();show('app');$('#off').hidden=false;route();return}
@@ -199,7 +188,7 @@ async function init(){
  data.session?start(data.session):show('login');
 }
 async function start(session){
- $('#who').textContent='Giriş yapan: '+(session.user.email||'');
+ $('#who').textContent='Giriş: '+(session.user.email||'');
  show('app');route();
  await load();
  sb.channel('p').on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>{clearTimeout(window._rt);window._rt=setTimeout(load,800)}).subscribe();
@@ -303,27 +292,18 @@ async function scan(cb){
  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})}catch{return toast('Kamera izni verilmedi (sayfa https olmalı)',1)}
  const v=$('#cam');v.srcObject=stream;$('#scan').hidden=false;await v.play();
  const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});let on=true;
- const stop= me=> {on=false;stream.getTracks().forEach(t=>t.stop());$('#scan').hidden=true};
+ const stop=()=>{on=false;stream.getTracks().forEach(t=>t.stop());$('#scan').hidden=true};
  $('#scanx').onclick=stop;
  (async function loop(){if(!on)return;try{const b=await det.detect(v);if(b[0]){navigator.vibrate?.(60);stop();cb(b[0].rawValue);return}}catch{}setTimeout(loop,180)})();
 }
 
 /* ---- Olaylar ---- */
-$('#s_go').onclick=()=>{
- const url=$('#s_url').value.trim().replace(/\/$/,''),key=$('#s_key').value.trim();
- if(!/^https:\/\/.+\.supabase\.co$/.test(url))return toast('Lütfen geçerli bir Supabase URL adresi girin (örn: https://xyz.supabase.co)',1);
- if(key.length<20)return toast('Geçerli bir Anon Key girin',1);
- localStorage.setItem('bk_cfg',JSON.stringify({url,key}));
- location.reload();
-};
-$('#l_go').onclick=async()=>{
- const email=$('#l_mail').value.trim();
- const password=$('#l_pw').value;
- if(!email||!password)return toast('E-posta ve şifre girin',1);
- const {data,error}=await sb.auth.signInWithPassword({email,password});
- error?toast('Giriş başarısız: e-posta veya şifre hatalı',1):start(data.session);
-};
-$('#l_pw').onkeydown=e=>e.key==='Enter'&&$('#l_go').click();
+$('#s_go').onclick=()=>{const url=$('#s_url').value.trim().replace(/\/$/,''),key=$('#s_key').value.trim();
+ if(!/^https:\/\/.+\.supabase\.co$/.test(url)||key.length<20)return toast('Adres veya anahtar hatalı',1);
+ localStorage.setItem('bk_cfg',JSON.stringify({url,key}));location.reload()};
+$('#l_go').onclick=async()=>{const {data,error}=await sb.auth.signInWithPassword({email:$('#l_mail').value.trim(),password:$('#l_pw').value});
+ error?toast('Giriş başarısız: e-posta veya şifre hatalı',1):start(data.session)};
+$('#l_pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#l_go').click()});
 $('#out').onclick=async()=>{await sb.auth.signOut();location.reload()};
 $('#reset').onclick=()=>{if(confirm('Bağlantı bilgisi silinsin mi?')){localStorage.removeItem('bk_cfg');location.reload()}};
 $('#reload').onclick=()=>load().then(()=>toast('Yenilendi'));
